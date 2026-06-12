@@ -71,6 +71,9 @@ export const productService = {
       },
     }),
 
+  getProductById: (id: string) =>
+    apiClient.get<Product>(`/products/${id}`),
+
   createProduct: (data: CreateProductRequest) =>
     apiClient.post<Product>('/products', { body: data }),
 

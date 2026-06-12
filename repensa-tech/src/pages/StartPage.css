@@ -1,12 +1,17 @@
 .start-page {
   min-height: 100svh;
-  background: #f9f9f5;
+  display: flex;
+  flex-direction: column;
+  background: #f0eeeb;
 }
 
 .start-page__main {
+  flex: 1;
   max-width: 72rem;
+  width: 100%;
   margin: 0 auto;
   padding: 2rem 2.5rem 3rem;
+  box-sizing: border-box;
 }
 
 .start-page__search {
@@ -92,6 +97,9 @@
   background: var(--color-white);
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
   transition: box-shadow 0.2s ease;
 }
 
@@ -116,7 +124,7 @@
   margin: 0 0 0.5rem;
   font-family: var(--font-body);
   font-size: 0.85rem;
-  font-weight: 400;
+  font-weight: 600;
   line-height: 1.4;
   color: var(--color-black);
 }
@@ -127,6 +135,17 @@
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--color-black);
+}
+
+.start-page__card-donation {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  color: var(--color-white);
+  background: var(--color-primary);
 }
 
 .start-page__card-img {

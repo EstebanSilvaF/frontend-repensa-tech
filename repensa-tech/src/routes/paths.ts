@@ -5,4 +5,5 @@ export const paths = {
   register: '/register',
   publish: '/publish',
   history: '/history',
+  productDetail: (id: string) => `/producto/${id}`,
 } as const

@@ -99,3 +99,24 @@ export interface ProductFilters {
   is_donation?: boolean
   search?: string
 }
+
+export type TransactionType = 'purchase' | 'sale' | 'donation'
+export type TransactionStatus = 'reserved' | 'completed' | 'donated'
+export type TransactionFilter = 'all' | TransactionType
+
+export interface Transaction {
+  id: string
+  product_name: string
+  image_url?: string | null
+  type: TransactionType
+  date: string
+  counterparty_name: string
+  amount: number
+  status: TransactionStatus
+}
+
+export interface HistorySummary {
+  purchases_count: number
+  sales_count: number
+  savings_total: number
+}
