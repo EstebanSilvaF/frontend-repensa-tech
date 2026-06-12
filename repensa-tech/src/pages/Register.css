@@ -86,6 +86,21 @@
   margin-right: clamp(0.5rem, 3vw, 2rem);
 }
 
+.register-page__back {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.45);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.register-page__back:hover {
+  color: var(--color-black);
+}
+
 .register-form__title {
   margin: 0 0 1rem;
   font-family: var(--font-heading);

@@ -1,14 +1,15 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { paths } from '../../routes/paths'
 import ChatIcon from '../icons/ChatIcon'
 import CubeLogoIcon from '../icons/CubeLogoIcon'
 import UserIcon from '../icons/UserIcon'
 import './AppNavbar.css'
 
 const navLinks = [
-  { label: 'Inicio', to: '/' },
-  { label: 'Publicar producto', to: '/publish' },
-  { label: 'Historial', to: '/history' },
+  { label: 'Inicio', to: paths.gallery },
+  { label: 'Publicar producto', to: paths.publish },
+  { label: 'Historial', to: paths.history },
 ]
 
 export default function AppNavbar() {
@@ -18,12 +19,16 @@ export default function AppNavbar() {
 
   function handleLogout() {
     logout()
-    navigate('/login')
+    navigate(paths.home)
   }
 
   return (
     <header className="app-navbar">
-      <Link to="/" className="app-navbar__logo" aria-label="Re-Pensa Tech inicio">
+      <Link
+        to={paths.gallery}
+        className="app-navbar__logo"
+        aria-label="Re-Pensa Tech inicio"
+      >
         <CubeLogoIcon />
       </Link>
 
@@ -57,7 +62,11 @@ export default function AppNavbar() {
             <UserIcon />
           </button>
         ) : (
-          <Link to="/login" className="app-navbar__icon-btn" aria-label="Iniciar sesión">
+          <Link
+            to={paths.login}
+            className="app-navbar__icon-btn"
+            aria-label="Iniciar sesión"
+          >
             <UserIcon />
           </Link>
         )}

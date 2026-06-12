@@ -4,6 +4,7 @@ import { universityService } from '../api/universityService'
 import CheckCircleIcon from '../components/icons/CheckCircleIcon'
 import { useAuth } from '../hooks/useAuth'
 import type { University } from '../types/api'
+import { paths } from '../routes/paths'
 import './Register.css'
 
 export default function RegisterPage() {
@@ -82,11 +83,7 @@ export default function RegisterPage() {
         email,
         password,
       })
-      navigate('/login', {
-        state: {
-          message: 'Cuenta creada correctamente. Inicia sesión para continuar.',
-        },
-      })
+      navigate(paths.login)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al registrarse')
     } finally {
@@ -98,7 +95,7 @@ export default function RegisterPage() {
     <div className="register-page">
       <aside className="register-brand" aria-label="Re-Pensa Tech">
         <div className="register-brand__curve" aria-hidden="true" />
-        <Link to="/home" className="register-brand__logo">
+        <Link to={paths.home} className="register-brand__logo">
           Re-Pensa Tech
         </Link>
         <p className="register-brand__headline">
@@ -121,6 +118,10 @@ export default function RegisterPage() {
 
       <main className="register-form-panel">
         <div className="register-form-wrapper">
+          <Link to={paths.home} className="register-page__back">
+            ← Volver
+          </Link>
+
           <h1 className="register-form__title">Crea tu cuenta</h1>
 
           <form className="register-form" onSubmit={handleSubmit}>

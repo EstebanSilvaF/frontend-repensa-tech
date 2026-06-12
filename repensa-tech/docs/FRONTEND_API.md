@@ -43,19 +43,20 @@ Los campos `created_at`, `updated_at`, `expires_at`, `confirmed_at`, etc. llegan
 
 ### CORS
 
-El backend **no tiene CORS configurado aún**. Si el frontend corre en otro puerto (ej. `localhost:5173`), pedir al equipo backend que habilite CORS o usar un proxy en Vite:
+El backend tiene CORS habilitado. Por defecto acepta peticiones desde:
 
-```ts
-// vite.config.ts
-export default defineConfig({
-  server: {
-    proxy: {
-      '/api': 'http://localhost:3000',
-      '/health': 'http://localhost:3000',
-    },
-  },
-});
+- `http://localhost:5173` (Vite)
+- `http://127.0.0.1:5173`
+
+Para agregar más orígenes (staging, producción), configurar en el `.env` del backend:
+
+```env
+CORS_ORIGIN=http://localhost:5173,https://app.repensatech.com
 ```
+
+Los orígenes se separan por coma. Postman y `curl` siguen funcionando (no envían header `Origin`).
+
+El frontend puede llamar directamente a `VITE_API_URL` sin proxy en Vite.
 
 ---
 
@@ -104,7 +105,9 @@ sequenceDiagram
   U->>API: GET /api/products/:id
 
   Note over U,API: 3. Publicar / gestionar
-  U->>API: POST /api/products
+  U->>API: POST /api/upload/product-image (multipart)
+  API-->>U: { image_url, image_public_id }
+  U->>API: POST /api/products { ..., image_url, image_public_id }
   U->>API: GET /api/products/mine
   U->>API: DELETE /api/products/:id
 
@@ -132,7 +135,8 @@ sequenceDiagram
 2. **Reserva**: bloquea el producto (`reserved`) por 7 días. Tarifa: **$2.000 COP**. Si expira sin confirmar entrega, vuelve a `available`.
 3. **Chat**: un comprador solo puede abrir un chat por producto. El vendedor no puede chatear sobre su propio producto.
 4. **Confirmar entrega**: comprador o vendedor pueden hacerlo. Cierra el chat, marca el producto como `sold` y crea una entrada en `/api/transactions`.
-5. **Eliminar producto**: solo el dueño y solo si está `available`.
+5. **Publicar producto**: primero `POST /api/upload/product-image`, luego `POST /api/products` con la URL devuelta.
+6. **Eliminar producto**: solo el dueño y solo si está `available` (borra imagen en Cloudinary si hay `image_public_id`).
 
 ---
 
@@ -211,7 +215,8 @@ export interface Product {
   category: ProductCategory;
   condition: ProductCondition;
   status: ProductStatus;
-  image_url: string | null;
+  image_url: string;
+  image_public_id: string | null;
   created_at: string;
   updated_at: string;
   /** Presente en galería y detalle */
@@ -305,6 +310,13 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface UploadProductImageResponse {
+  image_url: string;
+  image_public_id: string;
+  width: number;
+  height: number;
+}
+
 export interface CreateProductRequest {
   name: string;
   description?: string;
@@ -312,7 +324,8 @@ export interface CreateProductRequest {
   is_donation: boolean;
   category: ProductCategory;
   condition: ProductCondition;
-  image_url?: string;
+  image_url: string;
+  image_public_id?: string;
 }
 
 export interface OpenChatRequest {
@@ -455,6 +468,35 @@ Validaciones:
 
 ---
 
+### Upload de imágenes (Cloudinary) — Requiere token
+
+Las imágenes **no** se envían en `POST /api/products`. Primero subes el archivo al backend; este lo aloja en Cloudinary y devuelve la URL.
+
+#### `POST /api/upload/product-image`
+
+**Content-Type**: `multipart/form-data`
+
+| Campo | Tipo | Requerido |
+|-------|------|-----------|
+| `image` | archivo | sí |
+
+**Límites**: máx. 5 MB. Formatos: JPG, PNG, WEBP, GIF.
+
+**Response `201`**: `UploadProductImageResponse`
+
+```json
+{
+  "image_url": "https://res.cloudinary.com/tu-cloud/image/upload/v123/repensa/products/abc.jpg",
+  "image_public_id": "repensa/products/abc",
+  "width": 800,
+  "height": 600
+}
+```
+
+Usar `image_url` e `image_public_id` en el body de `POST /api/products`. El backend solo acepta URLs de tu cuenta Cloudinary (`CLOUDINARY_CLOUD_NAME`).
+
+---
+
 ### Productos — Requiere token
 
 #### `GET /api/products`
@@ -494,15 +536,22 @@ Productos publicados por el usuario (cualquier estado).
 
 **Body**: `CreateProductRequest`
 
+Flujo obligatorio:
+
+1. `POST /api/upload/product-image` con el archivo.
+2. `POST /api/products` con los datos del producto + `image_url` (+ `image_public_id` recomendado).
+
 Si `is_donation === true`, el backend fuerza `price` a `0`.
 
 **Response `201`**: `Product`
+
+**Errores `400`**: imagen faltante, URL que no pertenece a tu Cloudinary.
 
 ---
 
 #### `DELETE /api/products/:id`
 
-Solo dueño + estado `available`.
+Solo dueño + estado `available`. Si el producto tiene `image_public_id`, el backend también elimina la imagen en Cloudinary.
 
 **Response `200`**: `{ "message": "Producto eliminado" }`
 
@@ -723,8 +772,34 @@ export const api = {
 
   getProduct: (id: string) => request<Product>(`/products/${id}`),
 
+  uploadProductImage: (file: File) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const token = getToken();
+    return fetch(`${API_URL}/upload/product-image`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: res.statusText }));
+        throw new Error(err.message ?? 'Error al subir imagen');
+      }
+      return res.json() as Promise<UploadProductImageResponse>;
+    });
+  },
+
   createProduct: (body: CreateProductRequest) =>
     request<Product>('/products', { method: 'POST', body: JSON.stringify(body) }),
+
+  /** Flujo completo: sube imagen y publica producto */
+  publishProduct: async (
+    file: File,
+    data: Omit<CreateProductRequest, 'image_url' | 'image_public_id'>
+  ) => {
+    const image = await api.uploadProductImage(file);
+    return api.createProduct({ ...data, image_url: image.image_url, image_public_id: image.image_public_id });
+  },
 
   deleteProduct: (id: string) =>
     request<MessageResponse>(`/products/${id}`, { method: 'DELETE' }),
@@ -791,7 +866,7 @@ export const api = {
 | Login | `POST /auth/login` |
 | Home / Galería | `GET /products` (+ filtros en query) |
 | Detalle producto | `GET /products/:id` |
-| Publicar producto | `POST /products` |
+| Publicar producto | `POST /upload/product-image` → `POST /products` |
 | Mis publicaciones | `GET /products/mine`, `DELETE /products/:id` |
 | Mis reservas | `GET /reservations`, `POST /reservations` |
 | Lista de chats | `GET /chats` |
@@ -808,9 +883,41 @@ Para pruebas manuales, importar `repensa-postman-collection.json` en la raíz de
 
 ---
 
+## Base de datos y seed
+
+Al arrancar el servidor (`npm run dev`), `initDatabase()`:
+
+1. Ejecuta `db/schema.sql` si no existen tablas.
+2. Aplica migraciones idempotentes (ej. columna `image_public_id`).
+3. Ejecuta `db/seed.sql` **solo si** la tabla `universities` está vacía.
+
+### Datos de prueba (seed)
+
+| Recurso | Valor |
+|---------|-------|
+| Universidad | Universitaria Empresarial (`uniempresarial.edu.co`) |
+| Estudiante | `maria.rodriguez@uniempresarial.edu.co` / `Estudiante1!` |
+| Estudiante | `carlos.mendoza@uniempresarial.edu.co` / `Estudiante1!` |
+| Admin | `admin@uniempresarial.edu.co` / `Admin1!` |
+| Productos demo | Arduino Uno R3, Sensor HC-SR04 (imágenes de cuenta demo Cloudinary) |
+
+Para recargar el seed en desarrollo: vaciar tablas o recrear la base `repensa`.
+
+### Variables Cloudinary (backend `.env`)
+
+```env
+CLOUDINARY_CLOUD_NAME=tu_cloud
+CLOUDINARY_API_KEY=...
+CLOUDINARY_API_SECRET=...
+```
+
+Sin estas variables, `POST /api/upload/product-image` responde error. El resto de la API sigue funcionando.
+
+---
+
 ## Checklist de integración
 
-- [ ] Configurar `VITE_API_URL` o proxy de Vite
+- [ ] Configurar `VITE_API_URL=http://localhost:3000/api`
 - [ ] Implementar login y persistir `token`
 - [ ] Enviar `Authorization: Bearer` en rutas protegidas
 - [ ] Manejar `401` → logout y redirect a login
@@ -818,3 +925,5 @@ Para pruebas manuales, importar `repensa-postman-collection.json` en la raíz de
 - [ ] Validar email con dominio de la universidad seleccionada (UX; el backend también valida)
 - [ ] Mostrar estados de producto: `available` | `reserved` | `sold`
 - [ ] Polling o refresh manual en chats y notificaciones (no hay WebSockets aún)
+- [ ] Flujo publicar: `uploadProductImage` → `createProduct` con `image_url` + `image_public_id`
+- [ ] Formulario multipart: campo `image` (no base64 en JSON)

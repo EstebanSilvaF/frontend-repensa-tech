@@ -45,11 +45,30 @@ export interface Product {
   category: ProductCategory
   condition: ProductCondition
   status: ProductStatus
-  image_url: string | null
+  image_url: string
+  image_public_id: string | null
   created_at: string
   updated_at: string
   seller_name?: string
   seller_email?: string
+}
+
+export interface UploadProductImageResponse {
+  image_url: string
+  image_public_id: string
+  width: number
+  height: number
+}
+
+export interface CreateProductRequest {
+  name: string
+  description?: string
+  price: number
+  is_donation: boolean
+  category: ProductCategory
+  condition: ProductCondition
+  image_url: string
+  image_public_id?: string
 }
 
 export interface RegisterRequest {
