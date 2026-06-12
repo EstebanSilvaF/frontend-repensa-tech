@@ -1,0 +1,11 @@
+{
+  "name": "frontend-repensa-tech",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix repensa-tech",
+    "build": "npm run build --prefix repensa-tech",
+    "lint": "npm run lint --prefix repensa-tech",
+    "preview": "npm run preview --prefix repensa-tech",
+    "install:app": "npm install --prefix repensa-tech"
+  }
+}

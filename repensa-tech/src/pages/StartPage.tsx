@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { productService } from '../api/productService'
 import AppNavbar from '../components/layout/AppNavbar'
 import ImagePlaceholderIcon from '../components/icons/ImagePlaceholderIcon'
 import SearchIcon from '../components/icons/SearchIcon'
 import { useAuth } from '../hooks/useAuth'
+import { paths } from '../routes/paths'
 import type { Product } from '../types/api'
 import {
   galleryCategories,
@@ -16,6 +17,7 @@ import './StartPage.css'
 
 export default function StartPage() {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth()
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState<GalleryCategory>('Todo')
   const [products, setProducts] = useState<Product[]>([])
@@ -23,9 +25,13 @@ export default function StartPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!isAuthLoading && !isAuthenticated) {
+      navigate(paths.login)
+    }
+  }, [isAuthenticated, isAuthLoading, navigate])
+
+  useEffect(() => {
     if (!isAuthenticated) {
-      setProducts([])
-      setError(null)
       return
     }
 
@@ -61,6 +67,15 @@ export default function StartPage() {
     }
   }, [isAuthenticated, activeCategory, search])
 
+  if (isAuthLoading || !isAuthenticated) {
+    return (
+      <div className="start-page">
+        <AppNavbar />
+        <p className="start-page__status">Cargando...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="start-page">
       <AppNavbar />
@@ -74,7 +89,6 @@ export default function StartPage() {
             placeholder="Busca componentes de hardware o elementos necesarios"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            disabled={!isAuthenticated}
           />
         </div>
 
@@ -87,28 +101,13 @@ export default function StartPage() {
                 activeCategory === category ? ' start-page__filter--active' : ''
               }`}
               onClick={() => setActiveCategory(category)}
-              disabled={!isAuthenticated}
             >
               {category}
             </button>
           ))}
         </div>
 
-        {isAuthLoading ? (
-          <p className="start-page__status">Cargando...</p>
-        ) : !isAuthenticated ? (
-          <div className="start-page__status start-page__status--auth">
-            <p>Inicia sesión para ver los productos de tu universidad.</p>
-            <div className="start-page__status-actions">
-              <Link to="/login" className="start-page__status-link">
-                Iniciar sesión
-              </Link>
-              <Link to="/register" className="start-page__status-link">
-                Regístrate
-              </Link>
-            </div>
-          </div>
-        ) : isLoading ? (
+        {isLoading ? (
           <p className="start-page__status">Cargando productos...</p>
         ) : error ? (
           <p className="start-page__status start-page__status--error" role="alert">

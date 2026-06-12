@@ -24,9 +24,21 @@ const categoryToApi: Record<Exclude<GalleryCategory, 'Todo'>, ProductCategory> =
     Otros: 'other',
   }
 
+export type PublishCategory = Exclude<GalleryCategory, 'Todo'>
+
+export const publishCategories = galleryCategories.filter(
+  (c): c is PublishCategory => c !== 'Todo',
+)
+
 export function toApiCategory(
   category: GalleryCategory,
 ): ProductCategory | undefined {
   if (category === 'Todo') return undefined
+  return categoryToApi[category]
+}
+
+export function toApiCategoryFromPublish(
+  category: PublishCategory,
+): ProductCategory {
   return categoryToApi[category]
 }

@@ -1,18 +1,21 @@
-import { type FormEvent, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { type FormEvent, useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import CheckCircleIcon from '../components/icons/CheckCircleIcon'
 import { useAuth } from '../hooks/useAuth'
+import { paths } from '../routes/paths'
 import './LoginPage.css'
 
 export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
-  const successMessage = (location.state as { message?: string } | null)?.message
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    navigate(paths.login, { replace: true })
+  }, [navigate])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -21,7 +24,7 @@ export default function LoginPage() {
 
     try {
       await login({ email, password })
-      navigate('/')
+      navigate(paths.gallery)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al iniciar sesión')
     } finally {
@@ -33,7 +36,7 @@ export default function LoginPage() {
     <div className="login-page">
       <aside className="login-brand" aria-label="Re-Pensa Tech">
         <div className="login-brand__curve" aria-hidden="true" />
-        <Link to="/home" className="login-brand__logo">
+        <Link to={paths.home} className="login-brand__logo">
           Re-Pensa Tech
         </Link>
         <p className="login-brand__headline">
@@ -44,13 +47,11 @@ export default function LoginPage() {
 
       <main className="login-form-panel">
         <div className="login-form-wrapper">
-          <h1 className="login-form__title">Bienvenido</h1>
+          <Link to={paths.home} className="login-page__back">
+            ← Volver
+          </Link>
 
-          {successMessage && (
-            <p className="login-form__success" role="status">
-              {successMessage}
-            </p>
-          )}
+          <h1 className="login-form__title">Bienvenido</h1>
 
           <form className="login-form" onSubmit={handleSubmit}>
             <div className="login-form__field">
