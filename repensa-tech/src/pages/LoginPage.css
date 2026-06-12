@@ -83,6 +83,21 @@
   max-width: 22rem;
 }
 
+.login-page__back {
+  display: inline-block;
+  margin-bottom: 1rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.45);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.login-page__back:hover {
+  color: var(--color-black);
+}
+
 .login-form__title {
   margin: 0 0 2rem;
   font-family: var(--font-heading);

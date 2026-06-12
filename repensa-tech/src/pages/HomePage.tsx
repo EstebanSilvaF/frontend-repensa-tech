@@ -8,7 +8,7 @@ export default function HomePage() {
   return (
     <div className="home-page">
       <header className="home-header">
-        <Link to="/home" className="home-header__brand">
+        <Link to="/" className="home-header__brand">
           Re-Pensa <span className="home-header__brand-accent">Tech</span>
         </Link>
         <nav className="home-header__nav" aria-label="Navegación principal">
