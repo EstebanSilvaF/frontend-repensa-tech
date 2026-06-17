@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { productService } from '../api/productService'
+import AppFooter from '../components/layout/AppFooter'
 import AppNavbar from '../components/layout/AppNavbar'
 import ImagePlaceholderIcon from '../components/icons/ImagePlaceholderIcon'
 import SearchIcon from '../components/icons/SearchIcon'
+import { filterMockProducts } from '../data/mockProducts'
 import { useAuth } from '../hooks/useAuth'
 import { paths } from '../routes/paths'
 import type { Product } from '../types/api'
@@ -47,12 +49,13 @@ export default function StartPage() {
           search: search.trim() || undefined,
         })
         if (!cancelled) setProducts(data)
-      } catch (err) {
+      } catch {
         if (!cancelled) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : 'No se pudieron cargar los productos',
+          setProducts(
+            filterMockProducts({
+              category: toApiCategory(activeCategory),
+              search: search.trim() || undefined,
+            }),
           )
         }
       } finally {
@@ -120,7 +123,11 @@ export default function StartPage() {
         ) : (
           <div className="start-page__grid">
             {products.map((product) => (
-              <article key={product.id} className="start-page__card">
+              <Link
+                key={product.id}
+                to={paths.productDetail(product.id)}
+                className="start-page__card"
+              >
                 <div className="start-page__card-image">
                   {product.image_url ? (
                     <img
@@ -134,15 +141,21 @@ export default function StartPage() {
                 </div>
                 <div className="start-page__card-body">
                   <h2 className="start-page__card-title">{product.name}</h2>
-                  <p className="start-page__card-price">
-                    {formatPrice(product.price, product.is_donation)}
-                  </p>
+                  {product.is_donation ? (
+                    <span className="start-page__card-donation">Donación</span>
+                  ) : (
+                    <p className="start-page__card-price">
+                      {formatPrice(product.price, false)}
+                    </p>
+                  )}
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
         )}
       </main>
+
+      <AppFooter variant="light" />
     </div>
   )
 }
