@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import ChatPage from '../pages/ChatPage'
 import HistoryPage from '../pages/HistoryPage'
 import HomePage from '../pages/HomePage'
 import LoginPage from '../pages/LoginPage'
@@ -19,6 +20,7 @@ export default function AppRoutes() {
       <Route path={paths.register} element={<RegisterPage />} />
       <Route path={paths.publish} element={<PublishProductPage />} />
       <Route path={paths.history} element={<HistoryPage />} />
+      <Route path={paths.chat} element={<ChatPage />} />
     </Routes>
   )
 }

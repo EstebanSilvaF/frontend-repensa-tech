@@ -49,9 +49,15 @@ export default function AppNavbar() {
       </nav>
 
       <div className="app-navbar__actions">
-        <button type="button" className="app-navbar__icon-btn" aria-label="Chat">
+        <Link
+          to={paths.chat}
+          className={`app-navbar__icon-btn${
+            pathname === paths.chat ? ' app-navbar__icon-btn--active' : ''
+          }`}
+          aria-label="Mensajes"
+        >
           <ChatIcon />
-        </button>
+        </Link>
         {isAuthenticated ? (
           <button
             type="button"
