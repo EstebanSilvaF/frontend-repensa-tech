@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { chatService } from '../api/chatService'
+import { ApiError } from '../api/client'
 import { productService } from '../api/productService'
+import { reservationService } from '../api/reservationService'
 import AppFooter from '../components/layout/AppFooter'
 import AppNavbar from '../components/layout/AppNavbar'
 import ImagePlaceholderIcon from '../components/icons/ImagePlaceholderIcon'
-import { getMockProductById } from '../data/mockProducts'
 import { useAuth } from '../hooks/useAuth'
 import { paths } from '../routes/paths'
 import type { Product } from '../types/api'
@@ -15,11 +17,18 @@ import './ProductDetailPage.css'
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth()
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth()
   const navigate = useNavigate()
   const [product, setProduct] = useState<Product | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [actionMessage, setActionMessage] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [isOpeningChat, setIsOpeningChat] = useState(false)
+  const [isReserving, setIsReserving] = useState(false)
+
+  const isOwnProduct = !!product && !!user && product.seller_id === user.id
+  const canReserve = !!product && product.status === 'available' && !isOwnProduct
 
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
@@ -27,37 +36,68 @@ export default function ProductDetailPage() {
     }
   }, [isAuthenticated, isAuthLoading, navigate])
 
+  const loadProduct = useCallback(async () => {
+    if (!id) return
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const data = await productService.getProductById(id)
+      setProduct(data)
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'No se pudo cargar el producto'
+      setProduct(null)
+      setError(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [id])
+
   useEffect(() => {
     if (!isAuthenticated || !id) return
-
-    let cancelled = false
-
-    async function loadProduct() {
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        const data = await productService.getProductById(id!)
-        if (!cancelled) setProduct(data)
-      } catch {
-        const mock = getMockProductById(id!)
-        if (!cancelled) {
-          if (mock) {
-            setProduct(mock)
-          } else {
-            setError('No se encontró el producto')
-          }
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false)
-      }
-    }
-
     loadProduct()
-    return () => {
-      cancelled = true
+  }, [isAuthenticated, id, loadProduct])
+
+  async function handleOpenChat() {
+    if (!product) return
+
+    setIsOpeningChat(true)
+    setActionMessage(null)
+    setActionError(null)
+
+    try {
+      await chatService.openChat({ product_id: product.id })
+      setActionMessage('Chat abierto con el vendedor.')
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'No se pudo abrir el chat'
+      setActionError(message)
+    } finally {
+      setIsOpeningChat(false)
     }
-  }, [isAuthenticated, id])
+  }
+
+  async function handleReserve() {
+    if (!product) return
+
+    setIsReserving(true)
+    setActionMessage(null)
+    setActionError(null)
+
+    try {
+      await reservationService.reserveProduct({ product_id: product.id })
+      setActionMessage('Producto reservado por 7 días.')
+      await loadProduct()
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'No se pudo reservar el producto'
+      setActionError(message)
+    } finally {
+      setIsReserving(false)
+    }
+  }
 
   if (isAuthLoading || !isAuthenticated) {
     return (
@@ -129,6 +169,16 @@ export default function ProductDetailPage() {
                   <dd>{getCategoryLabel(product.category)}</dd>
                 </div>
                 <div className="product-detail-card__meta-row">
+                  <dt>Disponibilidad</dt>
+                  <dd>
+                    {product.status === 'available'
+                      ? 'Disponible'
+                      : product.status === 'reserved'
+                        ? 'Reservado'
+                        : 'Vendido'}
+                  </dd>
+                </div>
+                <div className="product-detail-card__meta-row">
                   <dt>Publicado</dt>
                   <dd>{formatRelativeTime(product.created_at)}</dd>
                 </div>
@@ -140,19 +190,51 @@ export default function ProductDetailPage() {
                 )}
               </dl>
 
-              <div className="product-detail-card__actions">
-                <button type="button" className="product-detail-card__btn product-detail-card__btn--primary">
-                  Abrir chat con vendedor
-                </button>
-                <button type="button" className="product-detail-card__btn product-detail-card__btn--secondary">
-                  Reservar producto
-                </button>
-              </div>
+              {isOwnProduct ? (
+                <p className="product-detail-card__disclaimer">
+                  Este es tu producto publicado.
+                </p>
+              ) : (
+                <>
+                  <div className="product-detail-card__actions">
+                    <button
+                      type="button"
+                      className="product-detail-card__btn product-detail-card__btn--primary"
+                      onClick={handleOpenChat}
+                      disabled={isOpeningChat || product.status === 'sold'}
+                    >
+                      {isOpeningChat ? 'Abriendo chat...' : 'Abrir chat con vendedor'}
+                    </button>
+                    <button
+                      type="button"
+                      className="product-detail-card__btn product-detail-card__btn--secondary"
+                      onClick={handleReserve}
+                      disabled={!canReserve || isReserving}
+                    >
+                      {isReserving ? 'Reservando...' : 'Reservar producto'}
+                    </button>
+                  </div>
 
-              <p className="product-detail-card__disclaimer">
-                Reserva = bloqueas este producto 7 días pagando una tarifa pequeña.
-                Si no compras, pierdes la tarifa.
-              </p>
+                  {actionMessage && (
+                    <p className="product-detail-card__disclaimer" role="status">
+                      {actionMessage}
+                    </p>
+                  )}
+                  {actionError && (
+                    <p
+                      className="product-detail-page__status product-detail-page__status--error"
+                      role="alert"
+                    >
+                      {actionError}
+                    </p>
+                  )}
+
+                  <p className="product-detail-card__disclaimer">
+                    Reserva = bloqueas este producto 7 días pagando una tarifa pequeña.
+                    Si no compras, pierdes la tarifa.
+                  </p>
+                </>
+              )}
             </div>
           </article>
         )}
