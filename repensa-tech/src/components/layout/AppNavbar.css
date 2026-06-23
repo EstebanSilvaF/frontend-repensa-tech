@@ -72,6 +72,10 @@
   color: var(--color-primary);
 }
 
+.app-navbar__icon-btn--active {
+  color: var(--color-primary);
+}
+
 @media (max-width: 900px) {
   .app-navbar {
     grid-template-columns: auto 1fr;
