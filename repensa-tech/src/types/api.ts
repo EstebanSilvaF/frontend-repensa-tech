@@ -120,3 +120,74 @@ export interface HistorySummary {
   sales_count: number
   savings_total: number
 }
+
+export type ChatStatus = 'open' | 'delivery_confirmed'
+
+export interface Chat {
+  id: string
+  product_id: string
+  buyer_id: string
+  seller_id: string
+  status: ChatStatus
+  created_at: string
+  updated_at: string
+  product_name?: string
+  product_price?: number
+  product_image?: string | null
+  buyer_name?: string
+  seller_name?: string
+  buyer_university_name?: string
+  seller_university_name?: string
+  last_message?: string | null
+  last_message_at?: string | null
+}
+
+export type MessageType = 'text' | 'appointment'
+export type AppointmentStatus = 'pending' | 'accepted' | 'rejected'
+
+export interface Message {
+  id: string
+  chat_id: string
+  sender_id: string
+  type: MessageType
+  content: string
+  appointment_status?: AppointmentStatus | null
+  appointment_day?: string | null
+  appointment_time?: string | null
+  appointment_location?: string | null
+  created_at: string
+  sender_name?: string
+}
+
+export interface AppointmentPayload {
+  day: string
+  time: string
+  location: string
+}
+
+export type AppointmentResponseAction = 'accept' | 'reject'
+
+export interface RespondAppointmentRequest {
+  action: AppointmentResponseAction
+}
+
+export interface SendMessageRequest {
+  content?: string
+  type?: MessageType
+  appointment?: AppointmentPayload
+}
+
+export interface ChatUpdatedPayload {
+  id: string
+  status: ChatStatus
+  last_message?: string | null
+  last_message_at?: string | null
+}
+
+export interface OpenChatRequest {
+  product_id: string
+}
+
+export interface ConfirmDeliveryResponse {
+  message: string
+}

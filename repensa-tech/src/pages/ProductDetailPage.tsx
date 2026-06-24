@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { chatService } from '../api/chatService'
+import { ApiError } from '../api/client'
 import { productService } from '../api/productService'
 import AppFooter from '../components/layout/AppFooter'
 import AppNavbar from '../components/layout/AppNavbar'
@@ -15,11 +17,15 @@ import './ProductDetailPage.css'
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth()
+  const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth()
   const navigate = useNavigate()
   const [product, setProduct] = useState<Product | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isOpeningChat, setIsOpeningChat] = useState(false)
+  const [chatError, setChatError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const isOwnProduct = Boolean(product && user && product.seller_id === user.id)
 
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
@@ -58,6 +64,24 @@ export default function ProductDetailPage() {
       cancelled = true
     }
   }, [isAuthenticated, id])
+
+  async function handleOpenChat() {
+    if (!product || isOwnProduct || isOpeningChat) return
+
+    setIsOpeningChat(true)
+    setChatError(null)
+
+    try {
+      const chat = await chatService.openChat(product.id)
+      navigate(paths.chatWithId(chat.id))
+    } catch (err) {
+      setChatError(
+        err instanceof ApiError ? err.message : 'No se pudo abrir el chat',
+      )
+    } finally {
+      setIsOpeningChat(false)
+    }
+  }
 
   if (isAuthLoading || !isAuthenticated) {
     return (
@@ -141,13 +165,30 @@ export default function ProductDetailPage() {
               </dl>
 
               <div className="product-detail-card__actions">
-                <button type="button" className="product-detail-card__btn product-detail-card__btn--primary">
-                  Abrir chat con vendedor
+                <button
+                  type="button"
+                  className="product-detail-card__btn product-detail-card__btn--primary"
+                  onClick={() => void handleOpenChat()}
+                  disabled={isOwnProduct || isOpeningChat}
+                >
+                  {isOpeningChat ? 'Abriendo chat...' : 'Abrir chat con vendedor'}
                 </button>
                 <button type="button" className="product-detail-card__btn product-detail-card__btn--secondary">
                   Reservar producto
                 </button>
               </div>
+
+              {isOwnProduct && (
+                <p className="product-detail-card__disclaimer">
+                  No puedes chatear sobre tu propio producto.
+                </p>
+              )}
+
+              {chatError && (
+                <p className="product-detail-page__status product-detail-page__status--error" role="alert">
+                  {chatError}
+                </p>
+              )}
 
               <p className="product-detail-card__disclaimer">
                 Reserva = bloqueas este producto 7 días pagando una tarifa pequeña.
