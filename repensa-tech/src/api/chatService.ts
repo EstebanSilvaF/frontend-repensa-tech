@@ -3,6 +3,7 @@ import type {
   Chat,
   ConfirmDeliveryResponse,
   Message,
+  OpenChatRequest,
 } from '../types/api'
 import { apiClient } from './client'
 
@@ -11,8 +12,8 @@ export const chatService = {
 
   getChat: (id: string) => apiClient.get<Chat>(`/chats/${id}`),
 
-  openChat: (product_id: string) =>
-    apiClient.post<Chat>('/chats', { body: { product_id } }),
+  openChat: (body: OpenChatRequest) =>
+    apiClient.post<Chat>('/chats', { body }),
 
   getMessages: (chatId: string) =>
     apiClient.get<Message[]>(`/chats/${chatId}/messages`),

@@ -1,59 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { reservationService } from '../api/reservationService'
+import { transactionService } from '../api/transactionService'
 import AppNavbar from '../components/layout/AppNavbar'
 import ImagePlaceholderIcon from '../components/icons/ImagePlaceholderIcon'
 import { useAuth } from '../hooks/useAuth'
 import { paths } from '../routes/paths'
 import type { Transaction, TransactionFilter } from '../types/api'
+import {
+  buildHistorySummary,
+  mapApiTransaction,
+  mapReservationToTransaction,
+} from '../utils/mapHistoryTransactions'
 import './HistoryPage.css'
-
-const MOCK_TRANSACTIONS: Transaction[] = [
-  {
-    id: '1',
-    product_name: 'Arduino Uno R3',
-    type: 'purchase',
-    date: '2026-05-23',
-    counterparty_name: 'Juan R.',
-    amount: -18000,
-    status: 'reserved',
-  },
-  {
-    id: '2',
-    product_name: 'Sensor HC-SR04',
-    type: 'sale',
-    date: '2026-05-21',
-    counterparty_name: 'Pablo M.',
-    amount: 8500,
-    status: 'completed',
-  },
-  {
-    id: '3',
-    product_name: 'Arduino Due',
-    type: 'purchase',
-    date: '2026-05-15',
-    counterparty_name: 'Ana L.',
-    amount: -25000,
-    status: 'completed',
-  },
-  {
-    id: '4',
-    product_name: 'Pack cables dupont M-M',
-    type: 'donation',
-    date: '2026-05-15',
-    counterparty_name: 'Maikel R.',
-    amount: 0,
-    status: 'donated',
-  },
-  {
-    id: '5',
-    product_name: 'Raspberry Pi 4 Model B',
-    type: 'purchase',
-    date: '2026-04-28',
-    counterparty_name: 'Miguel A.',
-    amount: -85000,
-    status: 'completed',
-  },
-]
 
 const FILTERS: { key: TransactionFilter; label: string }[] = [
   { key: 'all', label: 'Todo' },
@@ -103,6 +62,9 @@ export default function HistoryPage() {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth()
   const navigate = useNavigate()
   const [filter, setFilter] = useState<TransactionFilter>('all')
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
@@ -110,22 +72,55 @@ export default function HistoryPage() {
     }
   }, [isAuthenticated, isAuthLoading, navigate])
 
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    let cancelled = false
+
+    async function loadHistory() {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const [apiTransactions, reservations] = await Promise.all([
+          transactionService.getTransactions(),
+          reservationService.getReservations(),
+        ])
+
+        const completed = apiTransactions.map(mapApiTransaction)
+        const activeReservations = reservations
+          .map(mapReservationToTransaction)
+          .filter((item): item is Transaction => item !== null)
+
+        const merged = [...activeReservations, ...completed].sort((a, b) =>
+          b.date.localeCompare(a.date),
+        )
+
+        if (!cancelled) setTransactions(merged)
+      } catch {
+        if (!cancelled) {
+          setError('No se pudo cargar el historial')
+          setTransactions([])
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+
+    loadHistory()
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated])
+
   const filtered = useMemo(() => {
-    if (filter === 'all') return MOCK_TRANSACTIONS
-    return MOCK_TRANSACTIONS.filter((t) => t.type === filter)
-  }, [filter])
+    if (filter === 'all') return transactions
+    return transactions.filter((t) => t.type === filter)
+  }, [filter, transactions])
 
   const summary = useMemo(
-    () => ({
-      purchases: MOCK_TRANSACTIONS.filter((t) => t.type === 'purchase').length,
-      sales: MOCK_TRANSACTIONS.filter((t) => t.type === 'sale').length,
-      savings: Math.abs(
-        MOCK_TRANSACTIONS.filter(
-          (t) => t.type === 'purchase' && t.status === 'completed',
-        ).reduce((sum, t) => sum + t.amount, 0),
-      ),
-    }),
-    [],
+    () => buildHistorySummary(transactions),
+    [transactions],
   )
 
   const grouped = useMemo(() => {
@@ -208,7 +203,13 @@ export default function HistoryPage() {
         </div>
 
         <section className="history-page__list">
-          {grouped.length === 0 ? (
+          {isLoading ? (
+            <p className="history-page__status">Cargando historial...</p>
+          ) : error ? (
+            <p className="history-page__status" role="alert">
+              {error}
+            </p>
+          ) : grouped.length === 0 ? (
             <p className="history-page__status">
               No hay transacciones con este filtro.
             </p>

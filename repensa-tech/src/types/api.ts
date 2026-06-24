@@ -103,6 +103,9 @@ export interface ProductFilters {
 export type TransactionType = 'purchase' | 'sale' | 'donation'
 export type TransactionStatus = 'reserved' | 'completed' | 'donated'
 export type TransactionFilter = 'all' | TransactionType
+export type TransactionDirection = 'purchase' | 'sale'
+export type ChatStatus = 'active' | 'delivery_confirmed'
+export type ReservationStatus = 'active' | 'completed' | 'expired'
 
 export interface Transaction {
   id: string
@@ -113,6 +116,60 @@ export interface Transaction {
   counterparty_name: string
   amount: number
   status: TransactionStatus
+}
+
+export interface ApiTransaction {
+  id: string
+  product_id: string
+  seller_id: string
+  buyer_id: string
+  chat_id: string
+  reservation_id: string | null
+  final_price: number
+  confirmed_at: string
+  created_at: string
+  product_name?: string
+  product_image?: string | null
+  product_category?: ProductCategory
+  buyer_name?: string
+  seller_name?: string
+  direction?: TransactionDirection
+}
+
+export interface Reservation {
+  id: string
+  product_id: string
+  buyer_id: string
+  fee_paid: number
+  status: ReservationStatus
+  expires_at: string
+  created_at: string
+  product_name?: string
+  product_image?: string | null
+  product_price?: number
+}
+
+export interface Chat {
+  id: string
+  product_id: string
+  buyer_id: string
+  seller_id: string
+  status: ChatStatus
+  created_at: string
+  updated_at: string
+  product_name?: string
+  product_price?: number
+  product_image?: string | null
+  buyer_name?: string
+  seller_name?: string
+}
+
+export interface OpenChatRequest {
+  product_id: string
+}
+
+export interface ReserveProductRequest {
+  product_id: string
 }
 
 export interface HistorySummary {
