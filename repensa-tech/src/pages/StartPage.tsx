@@ -15,6 +15,8 @@ import {
   type GalleryCategory,
 } from '../utils/categories'
 import { formatPrice } from '../utils/formatPrice'
+import { getLikedProductIds, toggleProductLike } from '../utils/favorites'
+import HeartIcon from '../components/icons/HeartIcon'
 import './StartPage.css'
 
 export default function StartPage() {
@@ -23,8 +25,13 @@ export default function StartPage() {
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState<GalleryCategory>('Todo')
   const [products, setProducts] = useState<Product[]>([])
+  const [likedProductIds, setLikedProductIds] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setLikedProductIds(getLikedProductIds())
+  }, [])
 
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
@@ -122,35 +129,52 @@ export default function StartPage() {
           </p>
         ) : (
           <div className="start-page__grid">
-            {products.map((product) => (
-              <Link
-                key={product.id}
-                to={paths.productDetail(product.id)}
-                className="start-page__card"
-              >
-                <div className="start-page__card-image">
-                  {product.image_url ? (
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="start-page__card-img"
-                    />
-                  ) : (
-                    <ImagePlaceholderIcon />
-                  )}
+            {products.map((product) => {
+              const liked = likedProductIds.includes(product.id)
+
+              return (
+                <div key={product.id} className="start-page__card">
+                  <button
+                    type="button"
+                    className={`start-page__like-button${liked ? ' start-page__like-button--active' : ''}`}
+                    aria-label={liked ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                    onClick={() => {
+                      const updated = toggleProductLike(product.id)
+                      setLikedProductIds(updated)
+                    }}
+                  >
+                    <HeartIcon filled={liked} />
+                  </button>
+
+                  <Link
+                    to={paths.productDetail(product.id)}
+                    className="start-page__card-link"
+                  >
+                    <div className="start-page__card-image">
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="start-page__card-img"
+                        />
+                      ) : (
+                        <ImagePlaceholderIcon />
+                      )}
+                    </div>
+                    <div className="start-page__card-body">
+                      <h2 className="start-page__card-title">{product.name}</h2>
+                      {product.is_donation ? (
+                        <span className="start-page__card-donation">Donación</span>
+                      ) : (
+                        <p className="start-page__card-price">
+                          {formatPrice(product.price, false)}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
                 </div>
-                <div className="start-page__card-body">
-                  <h2 className="start-page__card-title">{product.name}</h2>
-                  {product.is_donation ? (
-                    <span className="start-page__card-donation">Donación</span>
-                  ) : (
-                    <p className="start-page__card-price">
-                      {formatPrice(product.price, false)}
-                    </p>
-                  )}
-                </div>
-              </Link>
-            ))}
+              )
+            })}
           </div>
         )}
       </main>

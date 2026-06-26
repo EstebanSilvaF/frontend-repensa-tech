@@ -5,6 +5,8 @@ export const paths = {
   register: '/register',
   publish: '/publish',
   history: '/history',
+  favorites: '/favorites',
+  profile: '/profile',
   chat: '/chat',
   productDetail: (id: string) => `/producto/${id}`,
 } as const
