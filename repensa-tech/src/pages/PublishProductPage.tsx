@@ -18,6 +18,7 @@ import { useAuth } from '../hooks/useAuth'
 import { paths } from '../routes/paths'
 import type { ProductCondition } from '../types/api'
 import {
+  fromApiCategoryToPublish,
   publishCategories,
   toApiCategoryFromPublish,
   type PublishCategory,
@@ -42,6 +43,7 @@ export default function PublishProductPage() {
   const [isDonation, setIsDonation] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false)
 
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
@@ -92,6 +94,32 @@ export default function PublishProductPage() {
     setImage(file)
   }
 
+  async function handleGenerateDescription() {
+    if (!imageFile || isGeneratingDescription || isSubmitting) {
+      return
+    }
+
+    const hasExistingData = name.trim() || description.trim()
+    if (hasExistingData && !window.confirm('¿Reemplazar los datos actuales con sugerencias de IA?')) {
+      return
+    }
+
+    setError(null)
+    setIsGeneratingDescription(true)
+
+    try {
+      const result = await productService.generateDescription(imageFile)
+      setName(result.name)
+      setDescription(result.description)
+      setCategory(fromApiCategoryToPublish(result.category))
+      setCondition(result.condition)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al generar la descripción')
+    } finally {
+      setIsGeneratingDescription(false)
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
@@ -127,10 +155,9 @@ export default function PublishProductPage() {
   }
 
   const previewName = name.trim() || 'Nombre del producto'
+  const previewDescription = description.trim()
   const previewPrice = isDonation ? 0 : Number(price) || 0
-  const previewPriceLabel = isDonation
-    ? '$0 COP'
-    : formatPrice(previewPrice, false)
+  const previewPriceLabel = formatPrice(previewPrice, isDonation)
 
   if (isAuthLoading) {
     return (
@@ -239,9 +266,19 @@ export default function PublishProductPage() {
               </div>
 
               <div className="publish-form__field">
-                <label htmlFor="product-description" className="publish-form__label">
-                  Descripción
-                </label>
+                <div className="publish-form__label-row">
+                  <label htmlFor="product-description" className="publish-form__label">
+                    Descripción
+                  </label>
+                  <button
+                    type="button"
+                    className="publish-form__ai-button"
+                    onClick={handleGenerateDescription}
+                    disabled={!imageFile || isSubmitting || isGeneratingDescription}
+                  >
+                    {isGeneratingDescription ? 'Generando...' : 'Sugerir con IA'}
+                  </button>
+                </div>
                 <textarea
                   id="product-description"
                   className="publish-form__textarea"
@@ -375,6 +412,13 @@ export default function PublishProductPage() {
               <div className="publish-preview__body">
                 <h3 className="publish-preview__name">{previewName}</h3>
                 <p className="publish-preview__price">{previewPriceLabel}</p>
+                {previewDescription ? (
+                  <p className="publish-preview__description">{previewDescription}</p>
+                ) : (
+                  <p className="publish-preview__description publish-preview__description--empty">
+                    La descripción aparecerá aquí.
+                  </p>
+                )}
                 <span className="publish-preview__badge">
                   {getConditionLabel(condition)}
                 </span>

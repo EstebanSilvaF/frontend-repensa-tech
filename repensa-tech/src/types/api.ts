@@ -60,6 +60,13 @@ export interface UploadProductImageResponse {
   height: number
 }
 
+export interface GenerateProductDescriptionResponse {
+  name: string
+  description: string
+  category: ProductCategory
+  condition: ProductCondition
+}
+
 export interface CreateProductRequest {
   name: string
   description?: string
