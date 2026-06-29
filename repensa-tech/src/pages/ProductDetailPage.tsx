@@ -21,13 +21,13 @@ export default function ProductDetailPage() {
   const navigate = useNavigate()
   const [product, setProduct] = useState<Product | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isOpeningChat, setIsOpeningChat] = useState(false)
+  const [isReserving, setIsReserving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [isOpeningChat, setIsOpeningChat] = useState(false)
-  const [isReserving, setIsReserving] = useState(false)
 
-  const isOwnProduct = !!product && !!user && product.seller_id === user.id
+  const isOwnProduct = Boolean(product && user && product.seller_id === user.id)
   const canReserve = !!product && product.status === 'available' && !isOwnProduct
 
   useEffect(() => {
@@ -61,19 +61,19 @@ export default function ProductDetailPage() {
   }, [isAuthenticated, id, loadProduct])
 
   async function handleOpenChat() {
-    if (!product) return
+    if (!product || isOwnProduct || isOpeningChat) return
 
     setIsOpeningChat(true)
     setActionMessage(null)
     setActionError(null)
 
     try {
-      await chatService.openChat({ product_id: product.id })
-      setActionMessage('Chat abierto con el vendedor.')
+      const chat = await chatService.openChat({ product_id: product.id })
+      navigate(paths.chatWithId(chat.id))
     } catch (err) {
-      const message =
-        err instanceof ApiError ? err.message : 'No se pudo abrir el chat'
-      setActionError(message)
+      setActionError(
+        err instanceof ApiError ? err.message : 'No se pudo abrir el chat',
+      )
     } finally {
       setIsOpeningChat(false)
     }
@@ -200,7 +200,7 @@ export default function ProductDetailPage() {
                     <button
                       type="button"
                       className="product-detail-card__btn product-detail-card__btn--primary"
-                      onClick={handleOpenChat}
+                      onClick={() => void handleOpenChat()}
                       disabled={isOpeningChat || product.status === 'sold'}
                     >
                       {isOpeningChat ? 'Abriendo chat...' : 'Abrir chat con vendedor'}
@@ -208,7 +208,7 @@ export default function ProductDetailPage() {
                     <button
                       type="button"
                       className="product-detail-card__btn product-detail-card__btn--secondary"
-                      onClick={handleReserve}
+                      onClick={() => void handleReserve()}
                       disabled={!canReserve || isReserving}
                     >
                       {isReserving ? 'Reservando...' : 'Reservar producto'}

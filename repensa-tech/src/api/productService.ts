@@ -1,6 +1,7 @@
 import { API_URL, TOKEN_KEY } from '../config/env'
 import type {
   CreateProductRequest,
+  GenerateProductDescriptionResponse,
   Product,
   ProductFilters,
   UploadProductImageResponse,
@@ -60,6 +61,43 @@ async function uploadProductImage(file: File): Promise<UploadProductImageRespons
   return response.json() as Promise<UploadProductImageResponse>
 }
 
+async function generateDescription(file: File): Promise<GenerateProductDescriptionResponse> {
+  const validationError = validateProductImage(file)
+  if (validationError) {
+    throw new ApiError(validationError, 400)
+  }
+
+  const formData = new FormData()
+  formData.append('image', file)
+
+  const token = localStorage.getItem(TOKEN_KEY)
+  const headers: Record<string, string> = {}
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  const response = await fetch(`${API_URL}/products/generate-description`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  })
+
+  if (!response.ok) {
+    let message = `Error al generar descripción (${response.status})`
+    try {
+      const errorBody = await response.json()
+      if (typeof errorBody.message === 'string') {
+        message = errorBody.message
+      }
+    } catch {
+      // use default message
+    }
+    throw new ApiError(message, response.status)
+  }
+
+  return response.json() as Promise<GenerateProductDescriptionResponse>
+}
+
 export const productService = {
   getProducts: (filters?: ProductFilters) =>
     apiClient.get<Product[]>('/products', {
@@ -78,6 +116,8 @@ export const productService = {
     apiClient.post<Product>('/products', { body: data }),
 
   uploadProductImage,
+
+  generateDescription,
 
   publishProduct: async (
     file: File,

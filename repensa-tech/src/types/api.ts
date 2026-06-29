@@ -60,6 +60,13 @@ export interface UploadProductImageResponse {
   height: number
 }
 
+export interface GenerateProductDescriptionResponse {
+  name: string
+  description: string
+  category: ProductCategory
+  condition: ProductCondition
+}
+
 export interface CreateProductRequest {
   name: string
   description?: string
@@ -104,7 +111,6 @@ export type TransactionType = 'purchase' | 'sale' | 'donation'
 export type TransactionStatus = 'reserved' | 'completed' | 'donated'
 export type TransactionFilter = 'all' | TransactionType
 export type TransactionDirection = 'purchase' | 'sale'
-export type ChatStatus = 'active' | 'delivery_confirmed'
 export type ReservationStatus = 'active' | 'completed' | 'expired'
 
 export interface Transaction {
@@ -149,6 +155,18 @@ export interface Reservation {
   product_price?: number
 }
 
+export interface ReserveProductRequest {
+  product_id: string
+}
+
+export interface HistorySummary {
+  purchases_count: number
+  sales_count: number
+  savings_total: number
+}
+
+export type ChatStatus = 'open' | 'delivery_confirmed'
+
 export interface Chat {
   id: string
   product_id: string
@@ -162,18 +180,58 @@ export interface Chat {
   product_image?: string | null
   buyer_name?: string
   seller_name?: string
+  buyer_university_name?: string
+  seller_university_name?: string
+  last_message?: string | null
+  last_message_at?: string | null
+}
+
+export type MessageType = 'text' | 'appointment'
+export type AppointmentStatus = 'pending' | 'accepted' | 'rejected'
+
+export interface Message {
+  id: string
+  chat_id: string
+  sender_id: string
+  type: MessageType
+  content: string
+  appointment_status?: AppointmentStatus | null
+  appointment_day?: string | null
+  appointment_time?: string | null
+  appointment_location?: string | null
+  created_at: string
+  sender_name?: string
+}
+
+export interface AppointmentPayload {
+  day: string
+  time: string
+  location: string
+}
+
+export type AppointmentResponseAction = 'accept' | 'reject'
+
+export interface RespondAppointmentRequest {
+  action: AppointmentResponseAction
+}
+
+export interface SendMessageRequest {
+  content?: string
+  type?: MessageType
+  appointment?: AppointmentPayload
+}
+
+export interface ChatUpdatedPayload {
+  id: string
+  status: ChatStatus
+  last_message?: string | null
+  last_message_at?: string | null
 }
 
 export interface OpenChatRequest {
   product_id: string
 }
 
-export interface ReserveProductRequest {
-  product_id: string
-}
-
-export interface HistorySummary {
-  purchases_count: number
-  sales_count: number
-  savings_total: number
+export interface ConfirmDeliveryResponse {
+  message: string
 }

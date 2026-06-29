@@ -42,3 +42,17 @@ export function toApiCategoryFromPublish(
 ): ProductCategory {
   return categoryToApi[category]
 }
+
+const apiToPublish: Record<ProductCategory, PublishCategory> = {
+  microcontrollers: 'Microcontroladores',
+  sensors: 'Sensores',
+  memory: 'Memorias',
+  displays: 'Displays',
+  cables: 'Cables',
+  power: 'Energía',
+  other: 'Otros',
+}
+
+export function fromApiCategoryToPublish(category: ProductCategory): PublishCategory {
+  return apiToPublish[category]
+}
