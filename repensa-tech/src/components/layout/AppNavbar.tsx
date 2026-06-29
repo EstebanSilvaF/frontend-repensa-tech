@@ -59,14 +59,15 @@ export default function AppNavbar() {
           <ChatIcon />
         </Link>
         {isAuthenticated ? (
-          <button
-            type="button"
-            className="app-navbar__icon-btn"
-            aria-label={user ? `Cerrar sesión de ${user.full_name}` : 'Cerrar sesión'}
-            onClick={handleLogout}
+          <Link
+            to={paths.profile}
+            className={`app-navbar__icon-btn${
+              pathname === paths.profile ? ' app-navbar__icon-btn--active' : ''
+            }`}
+            aria-label={user ? `Perfil de ${user.full_name}` : 'Perfil'}
           >
             <UserIcon />
-          </button>
+          </Link>
         ) : (
           <Link
             to={paths.login}

@@ -90,6 +90,7 @@
 }
 
 .start-page__card {
+  position: relative;
   display: flex;
   flex-direction: column;
   border: 1px solid rgba(0, 0, 0, 0.1);
@@ -99,12 +100,50 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   text-decoration: none;
   color: inherit;
-  cursor: pointer;
+  cursor: default;
   transition: box-shadow 0.2s ease;
 }
 
 .start-page__card:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.start-page__card-link {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.start-page__like-button {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(0, 0, 0, 0.65);
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.start-page__like-button:hover,
+.start-page__like-button:focus-visible {
+  background: var(--color-primary);
+  color: var(--color-white);
+  transform: translateY(-1px);
+}
+
+.start-page__like-button--active {
+  background: var(--color-primary);
+  color: var(--color-white);
 }
 
 .start-page__card-image {
